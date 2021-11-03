@@ -113,6 +113,18 @@ def mode_reader(filename):
     return mode_list
 
 
+def ask_path():
+    '''
+        This function is used to get the path of the data directory with tkinter.
+    '''
+    from tkinter import Tk
+    from tkinter.filedialog import askdirectory
+
+    Tk().withdraw()
+    directory = askdirectory()
+    return directory
+
+
 if __name__ == "__main__":
     # para = parameter_reader("./outs-1.dat")
     # print(para)
