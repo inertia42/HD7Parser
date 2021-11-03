@@ -116,6 +116,6 @@ def mode_reader(filename):
 if __name__ == "__main__":
     # para = parameter_reader("./outs-1.dat")
     # print(para)
-    # pass
-    mode = mode_reader("./outp.dat")
-    print(mode)
+    pass
+    # mode = mode_reader("./outp.dat")
+    # print(mode)
