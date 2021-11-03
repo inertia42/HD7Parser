@@ -41,8 +41,10 @@ def parameter_reader(filename):
             # but I can write a more general pattern to substitute for this function.
             def figure_reader(pattern, line):
                 index_data = re.findall(pattern, line)  # find the value
-                line = re.sub(pattern, '', line)  # remove those value for find index
-                indexes = re.findall(r'(\S+?)\s*?[=$]', line)  # get the index name
+                # remove those value for find index
+                line = re.sub(pattern, '', line)
+                # get the index name
+                indexes = re.findall(r'(\S+?)\s*?[=$]', line)
                 return index_data, indexes
 
             index_data, indexes = figure_reader(r'(0\.\d+?E[+-]\d+)', line)
@@ -71,12 +73,49 @@ def parameter_reader(filename):
             para_dict['omr'] = float(eigen_data[omr_index])
             para_dict['omi'] = float(eigen_data[omi_index])
             para_list.append(copy.deepcopy(para_dict))
+    f.close()
     return para_list
 
 
-# def mode_reader
+def mode_reader(filename):
+    '''Reads and Formats the mode structure of different parameters.
+
+    Args:
+        filename: the name and dir of the outp/outa/oute file.
+
+    Return:
+
+    '''
+    with open(filename, 'r') as f:
+        fulltext = f.read()
+    cases = re.split(r'\n{2,}', fulltext)
+    mode_list = []
+    for case in cases:
+        mode_value = re.findall(r'(-?0\.\d+?E[+-]\d+)', case)
+        if ('=' not in case) & (len(mode_value) != 0):
+            x = []
+            real = []
+            imag = []
+            lines = re.split(r'\n', case)
+            for line in lines:
+                mode_value = re.findall(r'(-?0\.\d+?E[+-]\d+)', line)
+                if len(mode_value) != 3:
+                    # raise ValueError
+                    continue
+                x.append(float(mode_value[0]))
+                real.append(float(mode_value[1]))
+                imag.append(float(mode_value[2]))
+                if len(x) == 0:
+                    raise ValueError
+            # mode = {"x": x, "real": real, "imag": imag}
+            mode = [x, real, imag]
+            mode_list.append(mode)
+    return mode_list
+
 
 if __name__ == "__main__":
     # para = parameter_reader("./outs-1.dat")
     # print(para)
-    pass
+    # pass
+    mode = mode_reader("./outp.dat")
+    print(mode)
