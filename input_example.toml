@@ -1,0 +1,7 @@
+dir.ask = 1  # 0: given, 1: ask
+anchor.name = 'etai'
+anchor.value = 15.5
+anchor.variable = 'beta'
+target = [0, 1]
+num = 2
+step = 0.001

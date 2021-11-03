@@ -16,6 +16,7 @@ import copy
 
 import numpy as np
 import collections
+import toml
 
 
 def parameter_reader(filename):
@@ -125,9 +126,109 @@ def ask_path():
     return directory
 
 
+def get_all_cases(path):
+    '''
+        This function is used to get cases of a directory or subdirectories of the directory.
+
+        Args:
+            path: the path of the directory of input data.
+    '''
+    cases = []
+    file_name = 'outs-1.dat'
+    for root, dirs, files in os.walk(path):
+        if file_name in files:
+            cases = parameter_reader(os.path.join(path, file_name))
+            break
+        for dir in dirs:
+            file_path = os.path.join(path, dir, file_name)
+            if os.path.exists(file_path):
+                cases.append(parameter_reader(file_path))
+        cases = [para for case in cases for para in case]
+        break
+    return cases
+
+
+def datef_generator_from_one(dir: dict,
+                             anchor: dict,
+                             target,
+                             step,
+                             num,
+                             addition=None):
+    '''
+        This function is used to generate datef file from one data point.
+
+        Args:
+            - dir: a dictionary of the input path and save path
+            - anchor: the start point of the scan
+            - target: the end point of the scan, it is a list or a value
+            - step: the step of scan
+            - num: the corresponding number of the scan variable
+            - addition: the additional information of the scan
+    '''
+    if dir['ask'] == 1:
+        dir['input'] = ask_path()
+        dir['save'] = ask_path()
+    elif dir['ask'] == 0:
+        if 'input' not in dir.keys():
+            raise Exception("Please input the input path.")
+        if 'save' not in dir.keys():
+            raise Exception("Please input the save path.")
+
+    if isinstance(target, int) or isinstance(target, float):
+        target = [target]
+
+    cases = get_all_cases(dir['input'])
+    cases = [case for case in cases if case[anchor['name']] == anchor['value']]
+    if len(cases) != 1:
+        raise Exception('The number of cases is not 1.')
+    case = cases[0]
+
+    for target_value in target:
+        if target_value < case[anchor['variable']]:
+            step_value = -step
+        else:
+            step_value = step
+        ip1 = int((target_value - case[anchor['variable']]) / step_value + 1)
+        dataf = ''' $inp
+ omr={omr},omi={omi},
+ num1={num1},dp1={dp1},ip1={ip1},
+ p1={etai},p2={beta},p3={shat},p4={etae},p5={q},p6=0.125,
+ p7={rnr},p8={tau},p9=0.00,p10={aky},p11=0.,
+ p12=1.00,p13=60,p14=6.00,p15=6.0,p16={rbr},p17={epsil},p18=0.2,p19={sw},ifplt=1,
+ deco=0.3
+ $'''.format(num1=num, dp1=step, ip1=ip1, **case)
+        data_dir = '{name}_{value}_to_{target}_step_{step}'.format(
+            name=anchor['variable'],
+            value=case[anchor['variable']],
+            target=target_value,
+            step=step)
+        data_dir = os.path.join(dir['save'], data_dir)
+        try:
+            os.mkdir(data_dir)
+        except FileExistsError:
+            pass
+        with open(os.path.join(data_dir, 'datef.dat'), 'w') as f:
+            f.write(dataf)
+    return
+
+
+def toml_parser(toml_file):
+    '''
+        This function is used to parse the toml file.
+
+        Args:
+            toml_file: the path of the toml file.
+    '''
+    with open(toml_file, 'r') as f:
+        toml_dict = toml.load(f)
+    datef_generator_from_one(**toml_dict)
+    return
+
+
 if __name__ == "__main__":
     # para = parameter_reader("./outs-1.dat")
     # print(para)
+    toml_parser("./input_example.toml")
     pass
     # mode = mode_reader("./outp.dat")
     # print(mode)
