@@ -196,7 +196,7 @@ def datef_generator_from_one(dir: dict,
  p7={rnr},p8={tau},p9=0.00,p10={aky},p11=0.,
  p12=1.00,p13=60,p14=6.00,p15=6.0,p16={rbr},p17={epsil},p18=0.2,p19={sw},ifplt=1,
  deco=0.3
- $'''.format(num1=num, dp1=step, ip1=ip1, **case)
+ $'''.format(num1=num, dp1=step_value, ip1=ip1, **case)
         data_dir = '{name}_{value}_to_{target}_step_{step}'.format(
             name=anchor['variable'],
             value=case[anchor['variable']],
