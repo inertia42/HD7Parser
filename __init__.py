@@ -14,8 +14,6 @@ import re
 import os
 import copy
 
-import numpy as np
-import collections
 import toml
 
 
@@ -114,7 +112,7 @@ def mode_reader(filename):
     return mode_list
 
 
-def ask_path():
+def ask_path(title=''):
     '''
         This function is used to get the path of the data directory with tkinter.
     '''
@@ -122,7 +120,10 @@ def ask_path():
     from tkinter.filedialog import askdirectory
 
     Tk().withdraw()
-    directory = askdirectory()
+    if title:
+        directory = askdirectory(title=title)
+    else:
+        directory = askdirectory()
     return directory
 
 
@@ -166,8 +167,8 @@ def datef_generator_from_one(dir: dict,
             - addition: the additional information of the scan
     '''
     if dir['ask'] == 1:
-        dir['input'] = ask_path()
-        dir['save'] = ask_path()
+        dir['input'] = ask_path(title='Please select the input directory')
+        dir['save'] = ask_path(title='Please select the save directory')
     elif dir['ask'] == 0:
         if 'input' not in dir.keys():
             raise Exception("Please input the input path.")
