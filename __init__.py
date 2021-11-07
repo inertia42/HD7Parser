@@ -154,7 +154,7 @@ def datef_generator_from_one(dir: dict,
                              target,
                              step,
                              num,
-                             addition=None):
+                             addition=''):
     '''
         This function is used to generate datef file from one data point.
 
@@ -198,11 +198,12 @@ def datef_generator_from_one(dir: dict,
  p12=1.00,p13=60,p14=6.00,p15=6.0,p16={rbr},p17={epsil},p18=0.2,p19={sw},ifplt=1,
  deco=0.3
  $'''.format(num1=num, dp1=step_value, ip1=ip1, **case)
-        data_dir = '{name}_{value}_to_{target}_step_{step}'.format(
+        data_dir = '{name}_{value}_to_{target}_step_{step}{addition}'.format(
             name=anchor['variable'],
             value=case[anchor['variable']],
             target=target_value,
-            step=step)
+            step=step,
+            addition=addition)
         data_dir = os.path.join(dir['save'], data_dir)
         try:
             os.mkdir(data_dir)
