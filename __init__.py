@@ -228,9 +228,4 @@ def toml_parser(toml_file):
 
 
 if __name__ == "__main__":
-    # para = parameter_reader("./outs-1.dat")
-    # print(para)
-    toml_parser("./input_example.toml")
     pass
-    # mode = mode_reader("./outp.dat")
-    # print(mode)
