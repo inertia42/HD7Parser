@@ -149,22 +149,20 @@ def get_all_cases(path):
     return cases
 
 
-def datef_generator_from_one(dir: dict,
-                             anchor: dict,
-                             target,
-                             step,
-                             num,
-                             addition=''):
+def datef_generator(dir: dict, anchor: dict, target, step, num, addition=''):
     '''
         This function is used to generate datef file from one data point.
 
         Args:
-            - dir: a dictionary of the input path and save path
-            - anchor: the start point of the scan
-            - target: the end point of the scan, it is a list or a value
-            - step: the step of scan
-            - num: the corresponding number of the scan variable
-            - addition: the additional information of the scan
+            dir: a dictionary of the input path and save path.
+            anchor: the start point of the scan.
+            target: the end point of the scan, it is a list or a value.
+            step: the step of scan.
+            num: the corresponding number of the scan variable.
+            addition: the additional information of the scan.
+
+        Raises:
+            ValueError: if more than one case is met.
     '''
     if dir['ask'] == 1:
         dir['input'] = ask_path(title='Please select the input directory')
@@ -178,19 +176,30 @@ def datef_generator_from_one(dir: dict,
     if isinstance(target, int) or isinstance(target, float):
         target = [target]
 
-    cases = get_all_cases(dir['input'])
-    cases = [case for case in cases if case[anchor['name']] == anchor['value']]
-    if len(cases) != 1:
-        raise Exception('The number of cases is not 1.')
-    case = cases[0]
+    anchor_name = anchor['name']
+    var_name = anchor['variable']
+    if isinstance(anchor['value'], int) or isinstance(anchor['value'], float):
+        anchor_values = [anchor['value']]
+    else:
+        anchor_values = anchor['value']
+    anchor_length = len(anchor_values)
 
-    for target_value in target:
-        if target_value < case[anchor['variable']]:
-            step_value = -step
-        else:
-            step_value = step
-        ip1 = int((target_value - case[anchor['variable']]) / step_value + 1)
-        dataf = ''' $inp
+    cases = get_all_cases(dir['input'])
+    for anchor_value in anchor_values:
+        anchor_cases = [
+            case for case in cases if case[anchor_name] == anchor_value
+        ]
+        if len(anchor_cases) != 1:
+            raise ValueError(f'The number of cases is {len(anchor_cases)} not 1')
+        case = anchor_cases[0]
+
+        for target_value in target:
+            if target_value < case[var_name]:
+                step_value = -step
+            else:
+                step_value = step
+            ip1 = int((target_value - case[var_name]) / step_value + 1)
+            dataf = ''' $inp
  omr={omr},omi={omi},
  num1={num1},dp1={dp1},ip1={ip1},
  p1={etai},p2={beta},p3={shat},p4={etae},p5={q},p6=0.125,
@@ -198,19 +207,29 @@ def datef_generator_from_one(dir: dict,
  p12=1.00,p13=60,p14=6.00,p15=6.0,p16={rbr},p17={epsil},p18=0.2,p19={sw},ifplt=1,
  deco=0.3
  $'''.format(num1=num, dp1=step_value, ip1=ip1, **case)
-        data_dir = '{name}_{value}_to_{target}_step_{step}{addition}'.format(
-            name=anchor['variable'],
-            value=case[anchor['variable']],
-            target=target_value,
-            step=step,
-            addition=addition)
-        data_dir = os.path.join(dir['save'], data_dir)
-        try:
-            os.mkdir(data_dir)
-        except FileExistsError:
-            pass
-        with open(os.path.join(data_dir, 'datef.dat'), 'w') as f:
-            f.write(dataf)
+            if anchor_length == 1:
+                data_dir = '{name}_{value}_to_{target}_step_{step}{addition}'.format(
+                    name=var_name,
+                    value=case[var_name],
+                    target=target_value,
+                    step=step,
+                    addition=addition)
+            elif anchor_length > 1:
+                data_dir = '{anchor}_{anchor_value}_{name}_{value}_to_{target}_step_{step}{addition}'.format(
+                    anchor=anchor_name,
+                    anchor_value=anchor_value,
+                    name=var_name,
+                    value=case[var_name],
+                    target=target_value,
+                    step=step,
+                    addition=addition)
+            data_dir = os.path.join(dir['save'], data_dir)
+            try:
+                os.mkdir(data_dir)
+            except FileExistsError:
+                pass
+            with open(os.path.join(data_dir, 'datef.dat'), 'w') as f:
+                f.write(dataf)
     return
 
 
@@ -223,7 +242,7 @@ def toml_parser(toml_file):
     '''
     with open(toml_file, 'r') as f:
         toml_dict = toml.load(f)
-    datef_generator_from_one(**toml_dict)
+    datef_generator(**toml_dict)
     return
 
 
