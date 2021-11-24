@@ -15,6 +15,7 @@ import os
 import copy
 
 import toml
+import json
 
 
 def parameter_reader(filename):
@@ -110,6 +111,28 @@ def mode_reader(filename):
             mode = [x, real, imag]
             mode_list.append(mode)
     return mode_list
+
+
+def jl_data_reader(path, name="out.json"):
+    '''
+        This function is used to read the data from hd7.jl.
+
+        Args:
+            path: the path of the directory of input data.
+            name: the path of the json file.
+    '''
+    filename = os.path.join(path, name)
+    with open(filename, 'r') as f:
+        data = json.load(f)
+    for case in data:
+        th = []
+        shat = case["shat"]
+        aky = case["aky"]
+        for k in case["k"]:
+            th.append(k/(shat*aky))
+        case["phi"] = (th, case["phi_r"], case["phi_i"])
+        case["apara"] = (th, case["apara_r"], case["apara_i"])
+    return data
 
 
 def ask_path(title=''):
