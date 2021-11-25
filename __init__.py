@@ -135,6 +135,37 @@ def jl_data_reader(path, name="out.json"):
     return data
 
 
+def single_parameter_extractor(cases, para_name, lower=None, upper=None):
+    '''
+        extract three lists from cases.
+        Args:
+            cases: a list of dicts.
+            para_name: the name of the parameter.
+        Returns:
+            three lists of parameter values , omr and omi.
+    '''
+    para_list = []
+    omr_list = []
+    omi_list = []
+
+    # check the lower and upper bound
+    if lower:
+        cases = [case for case in cases if case[para_name] >= lower]
+    if upper:
+        cases = [case for case in cases if case[para_name] <= upper]
+
+    # sort the cases by parameter value
+    cases = sorted(cases, key=lambda x: x[para_name])
+    for case in cases:
+        # exclude the duplicated cases
+        if case[para_name] in para_list:
+            continue
+        para_list.append(case[para_name])
+        omr_list.append(case["omr"])
+        omi_list.append(case["omi"])
+    return para_list, omr_list, omi_list
+
+
 def ask_path(title=''):
     '''
         This function is used to get the path of the data directory with tkinter.
