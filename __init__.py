@@ -13,9 +13,11 @@ Requirement:
 import re
 import os
 import copy
+from math import sqrt
 
 import toml
 import json
+import numpy as np
 
 
 def parameter_reader(filename):
@@ -164,6 +166,146 @@ def single_parameter_extractor(cases, para_name, lower=None, upper=None):
         omr_list.append(case["omr"])
         omi_list.append(case["omi"])
     return para_list, omr_list, omi_list
+
+
+def cal_psi_with_alpha(case):
+    '''
+    calculate the mode distribution of psi with alpha.
+    '''
+    q = case['q']
+    tau = case['tau']
+    aky = case['aky']
+    dth = case['dth']*0.447/aky
+    omr = case['omr']
+    omi = case['omi']
+    rnr = case['rnr']
+    epsil = case['epsil']
+    alpha = sqrt(1+(epsil/q)**2)
+    # mode_data = case['apara']
+    th, a_real, a_imag = case['apara']
+    # th = mode_data['x']
+    # a_real = mode_data['real']
+    # a_imag = mode_data['imag']
+
+    psi_real = []
+    psi_imag = []
+    for i, _ in enumerate(th):
+        real_integral = sum(a_real[i:])*2-a_real[i]-a_real[-1]
+        imag_integral = sum(a_imag[i:])*2-a_imag[i]-a_imag[-1]
+        # psi_real.append(q*omr*sqrt(tau)*dk*imag_integral/(2*rnr*shat)+q*omi*sqrt(tau)*dk*real_integral/(2*rnr*shat))
+        psi_real.append(q*sqrt(tau)*dth*alpha*aky*(imag_integral*omr+real_integral*omi)/(4*rnr))
+        psi_imag.append(q*sqrt(tau)*dth*alpha*aky*(-real_integral*omr+imag_integral*omi)/(4*rnr))
+    # case['psi'] = {'x': th, 'real': psi_real, 'imag': psi_imag}
+    case['psi'] = [th, psi_real, psi_imag]
+    return case
+
+
+def merge_data(dir):
+    file_para = os.path.join(dir, "outs-1.dat")
+    file_phi = os.path.join(dir, "outp-1.dat")
+    file_apara = os.path.join(dir, "outa-1.dat")
+    para_list = parameter_reader(file_para)
+    phi_list = mode_reader(file_phi)
+    apara_list = mode_reader(file_apara)
+    cases = []
+    for i, case in enumerate(para_list):
+        try:
+            case['phi'] = phi_list[i]
+            case['apara'] = apara_list[i]
+        except IndexError:
+            print('The number of cases is not equal to the number of modes.')
+            break
+        cases.append(case)
+    return cases
+
+
+def difference(case):
+    th, phi_real, phi_imag = case['phi']
+    _, psi_real, psi_imag = case['psi']
+
+    diff_real = np.array(phi_real)-np.array(psi_real)
+    diff_imag = np.array(phi_imag)-np.array(psi_imag)
+    case['diff'] = [th, diff_real, diff_imag]
+    # return [th, diff_real, diff_imag]
+    return case
+
+
+def mode_plot(case, axes):
+    # ax1, ax2, ax3 = axes
+    ax1, ax2 = axes
+    # th, real, imag = case[name]
+    # fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(13.5, 3))
+    th, phi_real, phi_imag = case['phi']
+    _, a_real, a_imag = case['apara']
+    _, d_real, d_imag = case['diff']
+    phi_real = np.array(phi_real)
+    phi_imag = np.array(phi_imag)
+    d_real = np.array(d_real)
+    d_imag = np.array(d_imag)
+    abs_phi = np.sqrt(phi_real**2 + phi_imag**2)
+    abs_diff = np.sqrt(d_real**2 + d_imag**2)
+
+    th_max = max(th)
+
+    ax1.plot(th, phi_real, label='real')
+    ax1.plot(th, phi_imag, label='imaginary')
+    ax1.legend(prop={'size': 8})
+    ax1.set_xlim(left=0, right=th_max)
+    ax1.set_xlabel(r'$\theta$')
+    ax1.set_ylabel(r"$\hat{\phi}$")
+    ax2.plot(th, a_real, label='real')
+    ax2.plot(th, a_imag, label='imaginary')
+    ax2.legend(prop={'size': 8})
+    ax2.set_xlim(left=0, right=th_max)
+    ax2.set_xlabel(r'$\theta$')
+    ax2.set_ylabel(r"$\hat{A}_\parallel$")
+    # ax3.plot(th, abs_phi, label=r'$|\hat{\phi}|$')
+    # ax3.plot(th, abs_diff, label=r'$|\hat{\phi}-\hat{\psi}|$')
+    # ax3.legend(prop={'size': 8})
+    # ax3.set_xlim(left=0, right=th_max)
+    # ax3.set_xlabel(r'$\theta$')
+    # ax3.set_ylabel(r"$|\hat{\phi}-\hat{\psi}|&|\hat{\phi}|$")
+    ax2.set_title("{:+.5f}+{:+.5f}i".format(case['omr'], case['omi']))
+    return
+
+
+def mode_plot_with_psi(case, axes):
+    ax1, ax2, ax3 = axes
+    # ax1, ax2 = axes
+    # th, real, imag = case[name]
+    # fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(13.5, 3))
+    th, phi_real, phi_imag = case['phi']
+    _, a_real, a_imag = case['apara']
+    _, d_real, d_imag = case['diff']
+    phi_real = np.array(phi_real)
+    phi_imag = np.array(phi_imag)
+    d_real = np.array(d_real)
+    d_imag = np.array(d_imag)
+    abs_phi = np.sqrt(phi_real**2 + phi_imag**2)
+    abs_diff = np.sqrt(d_real**2 + d_imag**2)
+
+    th_max = max(th)
+
+    ax1.plot(th, phi_real, label='real')
+    ax1.plot(th, phi_imag, label='imaginary')
+    ax1.legend(prop={'size': 8})
+    ax1.set_xlim(left=0, right=th_max)
+    ax1.set_xlabel(r'$\theta$')
+    ax1.set_ylabel(r"$\hat{\phi}$")
+    ax2.plot(th, a_real, label='real')
+    ax2.plot(th, a_imag, label='imaginary')
+    ax2.legend(prop={'size': 8})
+    ax2.set_xlim(left=0, right=th_max)
+    ax2.set_xlabel(r'$\theta$')
+    ax2.set_ylabel(r"$\hat{A}_\parallel$")
+    ax3.plot(th, abs_phi, label=r'$|\hat{\phi}|$')
+    ax3.plot(th, abs_diff, label=r'$|\hat{\phi}-\hat{\psi}|$')
+    ax3.legend(prop={'size': 8})
+    ax3.set_xlim(left=0, right=th_max)
+    ax3.set_xlabel(r'$\theta$')
+    ax3.set_ylabel(r"$|\hat{\phi}-\hat{\psi}|$"+r"\&"+r"$|\hat{\phi}|$")
+    ax2.set_title("{:+.5f}+{:+.5f}i".format(case['omr'], case['omi']))
+    return
 
 
 def ask_path(title=''):
