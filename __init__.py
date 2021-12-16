@@ -168,6 +168,64 @@ def single_parameter_extractor(cases, para_name, lower=None, upper=None):
     return para_list, omr_list, omi_list
 
 
+def two_parameter_extractor(cases, var_name='', para_name='', lower=None, upper=None):
+    '''
+        extract two parameter lists from cases.
+        Args:
+            cases: a list of dicts.
+            para_name: the name of the parameter, which is equal to y.
+            var_name: the name of the variable, which is equal to x.
+            lower: the lower bound of the parameter.
+            upper: the upper bound of the parameter.
+        Returns:
+            two lists of parameter values and variable parameter values.
+    '''
+    para_list = []
+    var_list = []
+
+    # check the lower and upper bound
+    if lower:
+        cases = [case for case in cases if case[var_name] >= lower]
+    if upper:
+        cases = [case for case in cases if case[var_name] <= upper]
+
+    # sort the cases by parameter value
+    cases = sorted(cases, key=lambda x: x[var_name])
+    for case in cases:
+        # exclude the duplicated cases
+        if case[var_name] in para_list:
+            continue
+        para_list.append(case[para_name])
+        var_list.append(case[var_name])
+    return var_list, para_list
+
+
+def cal_diffusion_coeff(cases):
+    '''
+        calculate the diffusion coefficient from the case.
+        The method is eq.18 in "Multiple ion temperature gradient driven modes in transport barriers", doi: https://doi.org/10.1088/1741-4326/aa5d02
+    '''
+    for case in cases:
+        shat = case["shat"]
+        aky = case["aky"]
+        omi = case["omi"]
+        rnr = case["rnr"]
+        phi = case["phi"]
+        apara = case["apara"]
+        th = np.array(phi[0])
+        phi2 = np.array(phi[1])**2 + np.array(phi[2])**2
+        tphi = (th**2)*phi2
+        sqrt_t = np.sqrt(np.trapz(tphi, x=th)/np.trapz(phi2, x=th))
+        dcoeff = omi/(aky*rnr*(shat*sqrt_t)**2)
+        case["phi_dcoeff"] = dcoeff
+        apara2 = np.array(apara[1])**2 + np.array(apara[2])**2
+        tapara = (th**2)*apara2
+        sqrt_t = np.sqrt(np.trapz(tapara, x=th)/np.trapz(apara2, x=th))
+        dcoeff = omi/(aky*rnr*(shat*sqrt_t)**2)
+        case["apara_dcoeff"] = dcoeff
+    return cases
+
+
 def cal_psi_with_alpha(case):
     '''
     calculate the mode distribution of psi with alpha.
