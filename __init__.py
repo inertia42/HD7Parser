@@ -211,17 +211,23 @@ def cal_diffusion_coeff(cases):
         omi = case["omi"]
         rnr = case["rnr"]
         phi = case["phi"]
+        q = case["q"]
+        beta = case["beta"]
+        tau = case["tau"]
+        etai = case["etai"]
+        alpha = (q**2)*beta*(1+tau)*(1+etai)/rnr
         apara = case["apara"]
         th = np.array(phi[0])
         phi2 = np.array(phi[1])**2 + np.array(phi[2])**2
         tphi = (th**2)*phi2
         sqrt_t = np.sqrt(np.trapz(tphi, x=th)/np.trapz(phi2, x=th))
-        dcoeff = omi/(aky*rnr*(shat*sqrt_t)**2)
+        alpha
+        dcoeff = omi/(aky*rnr*(shat*sqrt_t-alpha*np.sin(sqrt_t))**2)
         case["phi_dcoeff"] = dcoeff
         apara2 = np.array(apara[1])**2 + np.array(apara[2])**2
         tapara = (th**2)*apara2
         sqrt_t = np.sqrt(np.trapz(tapara, x=th)/np.trapz(apara2, x=th))
-        dcoeff = omi/(aky*rnr*(shat*sqrt_t)**2)
+        dcoeff = omi/(aky*rnr*(shat*sqrt_t-alpha*np.sin(sqrt_t))**2)
         case["apara_dcoeff"] = dcoeff
     return cases
 
