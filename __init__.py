@@ -131,7 +131,7 @@ def jl_data_reader(path, name="out.json"):
         shat = case["shat"]
         aky = case["aky"]
         for k in case["k"]:
-            th.append(k/(shat*aky))
+            th.append(k/abs(shat*aky))
         case["phi"] = (th, case["phi_r"], case["phi_i"])
         case["apara"] = (th, case["apara_r"], case["apara_i"])
     return data
@@ -239,7 +239,10 @@ def cal_psi_with_alpha(case):
     q = case['q']
     tau = case['tau']
     aky = case['aky']
-    dth = case['dth']*0.447/aky
+    if "dth" in case:
+        dth = case['dth']*0.447/aky
+    else:
+        dth = case['h']/abs(case['shat']*aky)
     omr = case['omr']
     omi = case['omi']
     rnr = case['rnr']
@@ -438,6 +441,8 @@ def datef_generator(dir: dict, anchor: dict, target, step, num, addition=''):
 
     anchor_name = anchor['name']
     var_name = anchor['variable']
+
+    # default type is list, thus it should convert int and float to list.
     if isinstance(anchor['value'], int) or isinstance(anchor['value'], float):
         anchor_values = [anchor['value']]
     else:
