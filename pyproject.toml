@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "hd7parser"
+version = "1.0.0"
+description = "Parse the outputs from HD7 and HD7.jl."
+authors = ["inertia <inertialiu@gmail.com>"]
+license = "GPL v3"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+toml = "^0.10.2"
+numpy = "^1.26.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
