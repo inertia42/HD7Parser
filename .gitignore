@@ -7,6 +7,7 @@ test.py
 __pycache__/
 *.py[cod]
 *$py.class
+poetry.lock
 
 # C extensions
 *.so
