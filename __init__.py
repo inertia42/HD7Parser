@@ -14,6 +14,7 @@ import re
 import os
 import copy
 from math import sqrt
+from tkinter import W
 
 import toml
 import json
@@ -49,7 +50,7 @@ def parameter_reader(filename):
                 indexes = re.findall(r'(\S+?)\s*?[=$]', line)
                 return index_data, indexes
 
-            index_data, indexes = figure_reader(r'(0\.\d+?E[+-]\d+)', line)
+            index_data, indexes = figure_reader(r'(-?0\.\d+?E[+-]\d+)', line)
             if len(index_data) != len(indexes):
                 # for some special cases with a unuseful line, for example HD7-em-tok
                 index_data, indexes = figure_reader(r'(-?\d\.\d+)', line)
@@ -115,7 +116,7 @@ def mode_reader(filename):
     return mode_list
 
 
-def jl_data_reader(path, name="out.json"):
+def jl_data_reader(path, name="out.json", ignore_mode=False):
     '''
         This function is used to read the data from hd7.jl.
 
@@ -126,18 +127,19 @@ def jl_data_reader(path, name="out.json"):
     filename = os.path.join(path, name)
     with open(filename, 'r') as f:
         data = json.load(f)
-    for case in data:
-        th = []
-        shat = case["shat"]
-        aky = case["aky"]
-        for k in case["k"]:
-            th.append(k/abs(shat*aky))
-        case["phi"] = (th, case["phi_r"], case["phi_i"])
-        case["apara"] = (th, case["apara_r"], case["apara_i"])
+    if not ignore_mode:
+        for case in data:
+            th = []
+            shat = case["shat"]
+            aky = case["aky"]
+            for k in case["k"]:
+                th.append(k/abs(shat*aky))
+            case["phi"] = (th, case["phi_r"], case["phi_i"])
+            case["apara"] = (th, case["apara_r"], case["apara_i"])
     return data
 
 
-def single_parameter_extractor(cases, para_name, lower=None, upper=None):
+def single_parameter_extractor(cases, para_name, lower=None, upper=None, reverse=False, **kwargs):
     '''
         extract three lists from cases.
         Args:
@@ -151,13 +153,16 @@ def single_parameter_extractor(cases, para_name, lower=None, upper=None):
     omi_list = []
 
     # check the lower and upper bound
+    if len(kwargs) != 0:
+        for key, value in kwargs.items():
+            cases = [case for case in cases if case[key] == value]
     if lower:
         cases = [case for case in cases if case[para_name] >= lower]
     if upper:
         cases = [case for case in cases if case[para_name] <= upper]
 
     # sort the cases by parameter value
-    cases = sorted(cases, key=lambda x: x[para_name])
+    cases = sorted(cases, key=lambda x: x[para_name], reverse=reverse)
     for case in cases:
         # exclude the duplicated cases
         if case[para_name] in para_list:
@@ -352,26 +357,33 @@ def mode_plot_with_psi(case, axes):
     abs_diff = np.sqrt(d_real**2 + d_imag**2)
 
     th_max = max(th)
+    for ax in axes:
+        linewidth = 1
+        ax.spines['top'].set_linewidth(linewidth)
+        ax.spines['bottom'].set_linewidth(linewidth)
+        ax.spines['left'].set_linewidth(linewidth)
+        ax.spines['right'].set_linewidth(linewidth)
 
-    ax1.plot(th, phi_real, label='real')
-    ax1.plot(th, phi_imag, label='imaginary')
-    ax1.legend(prop={'size': 8})
+    linewidth = 1.5
+    ax1.plot(th, phi_real, label='Re', linewidth=linewidth)
+    ax1.plot(th, phi_imag, label='Im', linewidth=linewidth)
+    ax1.legend(prop={'size': 16})
     ax1.set_xlim(left=0, right=th_max)
-    ax1.set_xlabel(r'$\theta$')
-    ax1.set_ylabel(r"$\hat{\phi}$")
-    ax2.plot(th, a_real, label='real')
-    ax2.plot(th, a_imag, label='imaginary')
-    ax2.legend(prop={'size': 8})
+    ax1.set_xlabel(r'$\mathbf{\theta}$', fontsize=15, fontweight='bold')
+    ax1.set_ylabel(r"$\mathbf{\hat{\phi}}$", fontsize=15, fontweight='bold')
+    ax2.plot(th, a_real, label='Re', linewidth=linewidth)
+    ax2.plot(th, a_imag, label='Im', linewidth=linewidth)
+    ax2.legend(prop={'size': 16})
     ax2.set_xlim(left=0, right=th_max)
-    ax2.set_xlabel(r'$\theta$')
-    ax2.set_ylabel(r"$\hat{A}_\parallel$")
-    ax3.plot(th, abs_phi, label=r'$|\hat{\phi}|$')
-    ax3.plot(th, abs_diff, label=r'$|\hat{\phi}-\hat{\psi}|$')
-    ax3.legend(prop={'size': 8})
+    ax2.set_xlabel(r'$\mathbf{\theta}$', fontsize=15, fontweight='bold')
+    ax2.set_ylabel(r"$\mathbf{\hat{A}_\parallel}$", fontsize=15, fontweight='bold')
+    ax3.plot(th, abs_phi, label=r'$|\hat{\phi}|$', linewidth=linewidth)
+    ax3.plot(th, abs_diff, label=r'$|\hat{\phi}-\hat{\psi}|$', linewidth=linewidth)
+    ax3.legend(prop={'size': 16})
     ax3.set_xlim(left=0, right=th_max)
-    ax3.set_xlabel(r'$\theta$')
-    ax3.set_ylabel(r"$|\hat{\phi}-\hat{\psi}|$"+r"\&"+r"$|\hat{\phi}|$")
-    ax2.set_title("{:+.5f}+{:+.5f}i".format(case['omr'], case['omi']))
+    ax3.set_xlabel(r'$\mathbf{\theta}$', fontsize=15, fontweight='bold')
+    ax3.set_ylabel(r"$\mathbf{|\hat{\phi}-\hat{\psi}|}$"+r"\&"+r"$\mathbf{|\hat{\phi}|}$", fontsize=15, fontweight='bold')
+    # ax2.set_title("{:+.5f}+{:+.5f}i".format(case['omr'], case['omi']))
     return
 
 
@@ -398,7 +410,7 @@ def get_all_cases(path):
             path: the path of the directory of input data.
     '''
     cases = []
-    file_name = 'outs-1.dat'
+    file_name = 'outs.dat'
     for root, dirs, files in os.walk(path):
         if file_name in files:
             cases = parameter_reader(os.path.join(path, file_name))
@@ -449,11 +461,37 @@ def datef_generator(dir: dict, anchor: dict, target, step, num, addition=''):
         anchor_values = anchor['value']
     anchor_length = len(anchor_values)
 
+    if "limit" in anchor.keys():
+        limit_name = anchor['limit']['name']
+        limit_value = anchor['limit']['value']
+        nolimit = False
+    else:
+        nolimit = True
+
     cases = get_all_cases(dir['input'])
+
+    def judge(dict, name, value):
+        if value == 0:
+            if abs(dict[name]) < 1e-7:
+                return True
+        else:
+            if dict[name] != 0 and abs(1-value/dict[name]) < 1e-7:
+                return True
+        return False
+
     for anchor_value in anchor_values:
-        anchor_cases = [
-            case for case in cases if case[anchor_name] == anchor_value
-        ]
+        # anchor_cases = [
+        #     case for case in cases if case[anchor_name] == anchor_value
+        # ]
+        anchor_cases = []
+        for case in cases:
+            if nolimit or judge(case, limit_name, limit_value):
+                if judge(case, anchor_name, anchor_value):
+                    case[anchor_name] = anchor_value
+                    if "fix" in anchor.keys():
+                        case[anchor['fix']['name']] = case[anchor['fix']['target']]
+                    anchor_cases.append(case)
+
         if len(anchor_cases) != 1:
             raise ValueError(f'The number of cases is {len(anchor_cases)} not 1')
         case = anchor_cases[0]
@@ -467,11 +505,9 @@ def datef_generator(dir: dict, anchor: dict, target, step, num, addition=''):
             dataf = ''' $inp
  omr={omr},omi={omi},
  num1={num1},dp1={dp1},ip1={ip1},
- p1={etai},p2={beta},p3={shat},p4={etae},p5={q},p6=0.125,
- p7={rnr},p8={tau},p9=0.00,p10={aky},p11=0.,
- p12=1.00,p13=60,p14=6.00,p15=6.0,p16={rbr},p17={epsil},p18=0.2,p19={sw},ifplt=1,
- deco=0.3
- $'''.format(num1=num, dp1=step_value, ip1=ip1, **case)
+ p1={chu},p2={pin},p3={sha},p4={bet},p5={q},p6={al},
+ p7={rnr},p8={tau},p9={aky},p10={ebusil},p11={rbr},ifplt=1
+ $end'''.format(num1=num, dp1=step_value, ip1=ip1, **case)
             if anchor_length == 1:
                 data_dir = '{name}_{value}_to_{target}_step_{step}{addition}'.format(
                     name=var_name,
