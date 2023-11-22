@@ -15,10 +15,13 @@ import os
 import copy
 from math import sqrt
 from tkinter import W
+from pathlib import Path
 
 import toml
 import json
 import numpy as np
+import openpyxl
+from openpyxl.utils import get_column_letter
 
 
 def parameter_reader(filename):
@@ -136,7 +139,58 @@ def jl_data_reader(path, name="out.json", ignore_mode=False):
                 th.append(k/abs(shat*aky))
             case["phi"] = (th, case["phi_r"], case["phi_i"])
             case["apara"] = (th, case["apara_r"], case["apara_i"])
+    else:
+        for case in data:
+            for key in ["k", "th", "phi_r", "phi_i", "apara_r", "apara_i"]:
+                case.pop(key, None)
     return data
+
+
+def extract_xlsx(cases, para_name, sheet='', lower=None, upper=None, reverse=False, filename="output.xlsx", **kwargs):
+    """
+    Extracts data from an Excel file (.xlsx) and writes it to another Excel file.
+
+    Args:
+        cases (list): A list of cases from which data will be extracted.
+        para_name (str): The name of the parameter to be extracted.
+        sheet (str, optional): The name of the sheet to write the data to. If not provided, the parameter name will be used as the sheet name.
+        lower (float, optional): The lower bound for the data values to be extracted. Defaults to None.
+        upper (float, optional): The upper bound for the data values to be extracted. Defaults to None.
+        reverse (bool, optional): Whether to reverse the order of the extracted data. Defaults to False.
+        filename (str, optional): The name of the output Excel file. Defaults to "output.xlsx".
+        **kwargs: Additional keyword arguments to be passed to the `single_parameter_extractor` function.
+
+    Returns:
+        None
+    """
+    # 首先调用 single_parameter_extractor 函数
+    para_list, omr_list, omi_list = single_parameter_extractor(cases, para_name, lower, upper, reverse, **kwargs)
+
+    # 确定工作表名称
+    sheet_name = sheet if sheet else para_name
+
+    # 检查文件是否存在
+    file_path = Path(filename)
+    if file_path.exists():
+        workbook = openpyxl.load_workbook(filename)
+    else:
+        workbook = openpyxl.Workbook()
+
+    # 检查工作表是否存在，如果存在则删除后重新创建
+    if sheet_name in workbook.sheetnames:
+        del workbook[sheet_name]
+    sheet = workbook.create_sheet(sheet_name)
+
+    # 写入表头
+    headers = [para_name, "omr", "omi"]
+    sheet.append(headers)
+
+    # 写入数据
+    for para, omr, omi in zip(para_list, omr_list, omi_list):
+        sheet.append([para, omr, omi])
+
+    # 保存文件
+    workbook.save(filename)
 
 
 def single_parameter_extractor(cases, para_name, lower=None, upper=None, reverse=False, **kwargs):
